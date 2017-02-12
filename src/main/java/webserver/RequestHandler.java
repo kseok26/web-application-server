@@ -9,11 +9,16 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.file.Files;
+import java.util.HashMap;
+import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import model.HttpRequestInfo;
+import model.User;
+import util.HttpRequestUtils;
 
 public class RequestHandler extends Thread {
 	private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
@@ -30,11 +35,8 @@ public class RequestHandler extends Thread {
 
 		try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()) {
 			// TODO 사용자 요청에 대한 처리는 이 곳에 구현하면 된다.
-
 			DataOutputStream dos = new DataOutputStream(out);
-			HttpRequestInfo httpRequestInfo = new HttpRequestInfo();
-			inputstreamPrintAndSetHttpRequest(httpRequestInfo, in);
-			byte[] body = mappingUrl(httpRequestInfo);
+			byte[] body = mappingUrl(getHttpRequestInfoByInputStream(in));
 			response200Header(dos, body.length);
 			responseBody(dos, body);
 		} catch (IOException e) {
@@ -42,86 +44,37 @@ public class RequestHandler extends Thread {
 		}
 	}
 
-	private void inputstreamPrintAndSetHttpRequest(HttpRequestInfo httpRequestInfo, InputStream in) {
-		int count = 1;
-		InputStreamReader inputStreamReader = new InputStreamReader(in);
-		BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-		try {
-			String line;
-			while (!"".equals(line = bufferedReader.readLine())) {
-				if (line == null) {
-					return;
-				}
-
-				setHttpRequestInfo(httpRequestInfo, count++, line);
-				log.debug("request Info : " + line);
+	private HttpRequestInfo getHttpRequestInfoByInputStream(InputStream in) throws IOException {
+		HttpRequestInfo httpRequestInfo = null;
+		String line;
+		boolean isFirstLine = true;
+		BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
+		while (false == StringUtils.isEmpty(line = bufferedReader.readLine())) {
+			if (isFirstLine) {
+				httpRequestInfo = HttpRequestUtils.parseHttpRequestInfo(line);
+				log.debug("url : "+httpRequestInfo.getUrl());
+				isFirstLine = false;
 			}
-		} catch (IOException e) {
-			e.printStackTrace();
+			log.debug("HttpRequest Infomation : " + line);
 		}
+		return httpRequestInfo;
 	}
 
-	private byte[] mappingUrl(HttpRequestInfo httpRequestInfo) {
-		switch (httpRequestInfo.getUrl()) {
-			case "/index.html":
-				try {
-					return Files.readAllBytes(new File("./webapp" + url).toPath());
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-				break;
-			default:
-				return "Hello World".getBytes();
+	private byte[] mappingUrl(HttpRequestInfo httpRequestInfo) throws IOException {
+		Map<String, String> httpRequestParameter = new HashMap<String, String>();
+		if (StringUtils.isEmpty(httpRequestInfo.getUrl())) {
+			return "HelloWorld".getBytes();
 		}
-		return "Hello World".getBytes();
-	}
 
-	private void setHttpRequestInfo(HttpRequestInfo httpRequestInfo, int count, String line) {
-		String[] tokens;
-		switch (count) {
-			case 1:
-				tokens = line.split(" ");
-				httpRequestInfo.setHttpMethod(tokens[0]);
-				httpRequestInfo.setUrl(tokens[1]);
-				httpRequestInfo.setHttpVersion(tokens[2]);
-				break;
-			case 2:
-				tokens = line.split(": ");
-				httpRequestInfo.setHost(tokens[1]);
-				break;
-			case 3:
-				tokens = line.split(": ");
-				httpRequestInfo.setConnection(tokens[1]);
-				break;
-			case 4:
-				tokens = line.split(": ");
-				httpRequestInfo.setUserAgent(tokens[1]);
-				break;
-			case 5:
-				tokens = line.split(": ");
-				httpRequestInfo.setAccept(tokens[1]);
-				break;
-			case 6:
-				tokens = line.split(": ");
-				httpRequestInfo.setReferer(tokens[1]);
-				break;
-			case 7:
-				tokens = line.split(": ");
-				httpRequestInfo.setAcceptEncoding(tokens[1]);
-				break;
-			case 8:
-				tokens = line.split(": ");
-				httpRequestInfo.setAcceptLanguage(tokens[1]);
-				break;
-			case 9:
-				tokens = line.split(": ");
-				httpRequestInfo.setIfNoneMatch(tokens[1]);
-				break;
-			case 10:
-				tokens = line.split(": ");
-				httpRequestInfo.setIfModifiedSince(tokens[1]);
-				break;
+		if (StringUtils.contains(httpRequestInfo.getUrl(), "/user/create") && StringUtils.equals(httpRequestInfo.getMethod(), "GET")) {
+				String[] tokens = StringUtils.split(httpRequestInfo.getUrl(), "?");
+				httpRequestParameter = HttpRequestUtils.parseQueryString(tokens[1]);
+				User user = new User(httpRequestParameter.get("userId"), httpRequestParameter.get("password"),
+					httpRequestParameter.get("name"), httpRequestParameter.get("email"));
+				return "Join Success Get Method".getBytes();
 		}
+
+		return Files.readAllBytes(new File("./webapp" + httpRequestInfo.getUrl()).toPath());
 	}
 
 	private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
