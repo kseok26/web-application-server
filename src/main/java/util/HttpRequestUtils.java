@@ -1,5 +1,7 @@
 package util;
 
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -8,7 +10,7 @@ import org.apache.commons.lang.StringUtils;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
-import model.HttpRequestInfo;
+import model.HttpRequest;
 
 public class HttpRequestUtils {
 	/**
@@ -52,16 +54,55 @@ public class HttpRequestUtils {
 		return new Pair(tokens[0], tokens[1]);
 	}
 
-	public static HttpRequestInfo parseHttpRequestInfo(String httpRequest) {
-		if (StringUtils.isEmpty(httpRequest)) {
-			return null;
-		}
+	public static HttpRequest parseHttpRequest(BufferedReader bufferedReader) throws IOException {
 
-		String[] tokens = StringUtils.split(httpRequest, " ");
-		HttpRequestInfo httpRequestInfo = new HttpRequestInfo();
-		httpRequestInfo.setMethod(tokens[0]);
-		httpRequestInfo.setUrl(tokens[1]);
-		return httpRequestInfo;
+		String line;
+		boolean isFirstLine = true;
+		HttpRequest httpRequest = new HttpRequest();
+
+		while (false == StringUtils.isEmpty(line = bufferedReader.readLine())) {
+			if (isFirstLine) {
+				String[] tokens = StringUtils.split(line, " ");
+				httpRequest.setMethod(tokens[0]);
+				if(StringUtils.equals(tokens[0],"POST")){
+					httpRequest.setUrl(tokens[1]);
+				}
+				else{
+					String[] seperateUrlAndParam = StringUtils.split(tokens[1], "?");
+					httpRequest.setUrl(seperateUrlAndParam[0]);
+					httpRequest.setParams(parseQueryString(seperateUrlAndParam[1]));
+				}
+
+				httpRequest.setHttpVersion(tokens[2]);
+				isFirstLine = false;
+				continue;
+			}
+			Pair pair = parseHeader(line);
+			switch (pair.getKey()){
+				case "Host":
+					httpRequest.setHost(pair.getValue());
+					break;
+				case "Connection":
+					httpRequest.setConnection(pair.getValue());
+					break;
+				case "User-Agent":
+					httpRequest.setUserAgent(pair.getValue());
+					break;
+				case "Accept":
+					httpRequest.setAccept(pair.getValue());
+					break;
+				case "Referer":
+					httpRequest.setReferer(pair.getValue());
+					break;
+				case "Accept-Encoding":
+					httpRequest.setAcceptEncoding(pair.getValue());
+					break;
+				case "Accept-Language":
+					httpRequest.setAcceptLanguage(pair.getValue());
+					break;
+			}
+		}
+		return httpRequest;
 	}
 
 	public static Pair parseHeader(String header) {

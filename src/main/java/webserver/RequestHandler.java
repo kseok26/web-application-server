@@ -16,7 +16,7 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import model.HttpRequestInfo;
+import model.HttpRequest;
 import model.User;
 import util.HttpRequestUtils;
 
@@ -44,37 +44,25 @@ public class RequestHandler extends Thread {
 		}
 	}
 
-	private HttpRequestInfo getHttpRequestInfoByInputStream(InputStream in) throws IOException {
-		HttpRequestInfo httpRequestInfo = null;
-		String line;
-		boolean isFirstLine = true;
-		BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
-		while (false == StringUtils.isEmpty(line = bufferedReader.readLine())) {
-			if (isFirstLine) {
-				httpRequestInfo = HttpRequestUtils.parseHttpRequestInfo(line);
-				log.debug("url : "+httpRequestInfo.getUrl());
-				isFirstLine = false;
-			}
-			log.debug("HttpRequest Infomation : " + line);
-		}
-		return httpRequestInfo;
+	private HttpRequest getHttpRequestInfoByInputStream(InputStream in) throws IOException {
+		return HttpRequestUtils.parseHttpRequest(new BufferedReader(new InputStreamReader(in)));
 	}
 
-	private byte[] mappingUrl(HttpRequestInfo httpRequestInfo) throws IOException {
+	private byte[] mappingUrl(HttpRequest httpRequest) throws IOException {
 		Map<String, String> httpRequestParameter = new HashMap<String, String>();
-		if (StringUtils.isEmpty(httpRequestInfo.getUrl())) {
+		if (StringUtils.isEmpty(httpRequest.getUrl())) {
 			return "HelloWorld".getBytes();
 		}
 
-		if (StringUtils.contains(httpRequestInfo.getUrl(), "/user/create") && StringUtils.equals(httpRequestInfo.getMethod(), "GET")) {
-				String[] tokens = StringUtils.split(httpRequestInfo.getUrl(), "?");
+		if (StringUtils.contains(httpRequest.getUrl(), "/user/create") && StringUtils.equals(httpRequest.getMethod(), "GET")) {
+				String[] tokens = StringUtils.split(httpRequest.getUrl(), "?");
 				httpRequestParameter = HttpRequestUtils.parseQueryString(tokens[1]);
 				User user = new User(httpRequestParameter.get("userId"), httpRequestParameter.get("password"),
 					httpRequestParameter.get("name"), httpRequestParameter.get("email"));
 				return "Join Success Get Method".getBytes();
 		}
 
-		return Files.readAllBytes(new File("./webapp" + httpRequestInfo.getUrl()).toPath());
+		return Files.readAllBytes(new File("./webapp" + httpRequest.getUrl()).toPath());
 	}
 
 	private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
