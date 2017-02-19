@@ -38,7 +38,7 @@ public class HttpRequestUtils {
 
 		String[] tokens = values.split(separator);
 		return Arrays.stream(tokens).map(t -> getKeyValue(t, "=")).filter(p -> p != null)
-			.collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue()));
+				.collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue()));
 	}
 
 	static Pair getKeyValue(String keyValue, String regex) {
@@ -60,48 +60,63 @@ public class HttpRequestUtils {
 		boolean isFirstLine = true;
 		HttpRequest httpRequest = new HttpRequest();
 
-		while (false == StringUtils.isEmpty(line = bufferedReader.readLine())) {
+		while (StringUtils.isEmpty(line = bufferedReader.readLine()) == false) {
+			System.out.println(line);
 			if (isFirstLine) {
 				String[] tokens = StringUtils.split(line, " ");
 				httpRequest.setMethod(tokens[0]);
-				if(StringUtils.equals(tokens[0],"POST")){
+				
+				if (StringUtils.equals(tokens[0], "POST")) {
 					httpRequest.setUrl(tokens[1]);
-				}
-				else{
-					String[] seperateUrlAndParam = StringUtils.split(tokens[1], "?");
-					httpRequest.setUrl(seperateUrlAndParam[0]);
-					httpRequest.setParams(parseQueryString(seperateUrlAndParam[1]));
+				} else {
+					if (StringUtils.contains(tokens[1], '?')) {
+						String[] seperateUrlAndParam = StringUtils.split(tokens[1], "?");
+						httpRequest.setUrl(seperateUrlAndParam[0]);
+						httpRequest.setParams(parseQueryString(seperateUrlAndParam[1]));
+					} else {
+						httpRequest.setUrl(tokens[1]);
+					}
 				}
 
 				httpRequest.setHttpVersion(tokens[2]);
 				isFirstLine = false;
 				continue;
 			}
+			
 			Pair pair = parseHeader(line);
-			switch (pair.getKey()){
-				case "Host":
-					httpRequest.setHost(pair.getValue());
-					break;
-				case "Connection":
-					httpRequest.setConnection(pair.getValue());
-					break;
-				case "User-Agent":
-					httpRequest.setUserAgent(pair.getValue());
-					break;
-				case "Accept":
-					httpRequest.setAccept(pair.getValue());
-					break;
-				case "Referer":
-					httpRequest.setReferer(pair.getValue());
-					break;
-				case "Accept-Encoding":
-					httpRequest.setAcceptEncoding(pair.getValue());
-					break;
-				case "Accept-Language":
-					httpRequest.setAcceptLanguage(pair.getValue());
-					break;
+			switch (pair.getKey()) {
+			case "Host":
+				httpRequest.setHost(pair.getValue());
+				break;
+			case "Connection":
+				httpRequest.setConnection(pair.getValue());
+				break;
+			case "User-Agent":
+				httpRequest.setUserAgent(pair.getValue());
+				break;
+			case "Accept":
+				httpRequest.setAccept(pair.getValue());
+				break;
+			case "Referer":
+				httpRequest.setReferer(pair.getValue());
+				break;
+			case "Accept-Encoding":
+				httpRequest.setAcceptEncoding(pair.getValue());
+				break;
+			case "Accept-Language":
+				httpRequest.setAcceptLanguage(pair.getValue());
+				break;
+			case "Content-Length":
+				httpRequest.setContentLength(Integer.parseInt(pair.getValue()));
 			}
 		}
+
+		if (StringUtils.equals(httpRequest.getMethod(), "POST") && httpRequest.getContentLength() != 0) {
+			String body = IOUtils.readData(bufferedReader, httpRequest.getContentLength());
+			System.out.println(body);
+			httpRequest.setParams(parseQueryString(body));
+		}
+
 		return httpRequest;
 	}
 
@@ -143,7 +158,7 @@ public class HttpRequestUtils {
 				return false;
 			if (getClass() != obj.getClass())
 				return false;
-			Pair other = (Pair)obj;
+			Pair other = (Pair) obj;
 			if (key == null) {
 				if (other.key != null)
 					return false;
@@ -163,9 +178,3 @@ public class HttpRequestUtils {
 		}
 	}
 }
-
-
-
-
-
-

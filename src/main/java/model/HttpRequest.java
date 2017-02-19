@@ -21,6 +21,9 @@ public class HttpRequest {
 	private String acceptEncoding;
 	private String acceptLanguage;
 	private String referer;
+	private int contentLength;
 	private Map<String, String> cookies;
 	private Map<String, String> params;
+	
+	
 }
