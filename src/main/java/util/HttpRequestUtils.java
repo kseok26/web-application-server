@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import model.HttpRequest;
-import webserver.RequestHandler;
 
 public class HttpRequestUtils {
 	private static final Logger log = LoggerFactory.getLogger(HttpRequestUtils.class);
@@ -113,6 +112,10 @@ public class HttpRequestUtils {
 				break;
 			case "Content-Length":
 				httpRequest.setContentLength(Integer.parseInt(pair.getValue()));
+				break;
+			case "Cookie":
+				httpRequest.setCookies(parseCookies(pair.getValue()));
+				break;
 			}
 		}
 

@@ -12,10 +12,6 @@ import model.HttpRequest;
  */
 public class HttpResponseUtils {
 
-	private String makeResponseHeader(){
-		return "";
-	}
-
 	public void responseSuccess(DataOutputStream dos, HttpRequest httpRequest, boolean logined) throws IOException{
 		byte[] body = Files.readAllBytes(new File("./webapp" + httpRequest.getUrl()).toPath());
 		responseSuccess(dos, body.length, logined);
