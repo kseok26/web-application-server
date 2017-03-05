@@ -117,7 +117,6 @@ public class RequestHandler extends Thread {
 	}
 
 	private void response302(DataOutputStream dos, String location) {
-		byte[] body = "HelloWorld".getBytes();
 		try {
 			dos.writeBytes("HTTP/1.1 302 Found \r\n");
 			dos.writeBytes("Location: " + location + "\r\n");
@@ -126,7 +125,6 @@ public class RequestHandler extends Thread {
 			e.getStackTrace();
 			log.error(e.getMessage());
 		}
-		responseBody(dos, body);
 	}
 
 	private void response200Logined(DataOutputStream dos, HttpRequest httpRequest, boolean isLogin) throws IOException {

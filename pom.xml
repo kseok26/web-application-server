@@ -47,6 +47,13 @@
 			<version>2.6</version>
 		</dependency>
 
+		<!--apache commons collections-->
+		<dependency>
+			<groupId>commons-collections</groupId>
+			<artifactId>commons-collections</artifactId>
+			<version>3.2.2</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>
